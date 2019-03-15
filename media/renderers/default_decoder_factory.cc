@@ -86,7 +86,6 @@ void DefaultDecoderFactory::CreateVideoDecoders(
   video_decoders->push_back(
       std::make_unique<DecryptingVideoDecoder>(task_runner, media_log));
 #endif
-
   // Perfer an external decoder since one will only exist if it is hardware
   // accelerated.
   // Remember that |gpu_factories| will be null if HW video decode is turned
@@ -97,14 +96,12 @@ void DefaultDecoderFactory::CreateVideoDecoders(
     // factories, require that their message loops are identical.
     DCHECK_EQ(gpu_factories->GetTaskRunner(), task_runner);
 
-    if (external_decoder_factory_) {
+    // MojoVideoDecoder replaces any VDA for this platform when it's enabled.
+    if (external_decoder_factory_ && base::FeatureList::IsEnabled(media::kMojoVideoDecoder)) {
       external_decoder_factory_->CreateVideoDecoders(
           task_runner, gpu_factories, media_log, request_overlay_info_cb,
           target_color_space, video_decoders);
-    }
-
-    // MojoVideoDecoder replaces any VDA for this platform when it's enabled.
-    if (!base::FeatureList::IsEnabled(media::kMojoVideoDecoder)) {
+    } else {
       video_decoders->push_back(std::make_unique<GpuVideoDecoder>(
           gpu_factories, request_overlay_info_cb, target_color_space,
           media_log));
