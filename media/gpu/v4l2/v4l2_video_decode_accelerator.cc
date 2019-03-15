@@ -29,6 +29,7 @@
 #include "media/base/video_frame_layout.h"
 #include "media/base/video_types.h"
 #include "media/gpu/macros.h"
+#include "media/gpu/buildflags.h"
 #include "media/gpu/v4l2/v4l2_image_processor.h"
 #include "media/video/h264_parser.h"
 #include "ui/gfx/geometry/rect.h"
@@ -79,7 +80,10 @@ size_t GetNumPlanesOfV4L2PixFmt(uint32_t pix_fmt) {
 
 // static
 const uint32_t V4L2VideoDecodeAccelerator::supported_input_fourccs_[] = {
-    V4L2_PIX_FMT_H264, V4L2_PIX_FMT_VP8, V4L2_PIX_FMT_VP9,
+    V4L2_PIX_FMT_H264, V4L2_PIX_FMT_VP8,
+#if !BUILDFLAG(USE_LINUX_V4L2)
+    V4L2_PIX_FMT_VP9,
+#endif
 };
 
 struct V4L2VideoDecodeAccelerator::BitstreamBufferRef {

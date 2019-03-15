@@ -24,7 +24,9 @@
 #endif
 #if BUILDFLAG(USE_V4L2_CODEC)
 #include "media/gpu/v4l2/v4l2_device.h"
+#if !BUILDFLAG(USE_LINUX_V4L2)
 #include "media/gpu/v4l2/v4l2_slice_video_decode_accelerator.h"
+#endif
 #include "media/gpu/v4l2/v4l2_video_decode_accelerator.h"
 #include "ui/gl/gl_surface_egl.h"
 #endif
@@ -71,9 +73,12 @@ gpu::VideoDecodeAcceleratorCapabilities GetDecoderCapabilitiesInternal(
   vda_profiles = V4L2VideoDecodeAccelerator::GetSupportedProfiles();
   GpuVideoAcceleratorUtil::InsertUniqueDecodeProfiles(
       vda_profiles, &capabilities.supported_profiles);
+#if !BUILDFLAG(USE_LINUX_V4L2)
+  VLOG(0) << __func__;
   vda_profiles = V4L2SliceVideoDecodeAccelerator::GetSupportedProfiles();
   GpuVideoAcceleratorUtil::InsertUniqueDecodeProfiles(
       vda_profiles, &capabilities.supported_profiles);
+#endif
 #endif
 #if BUILDFLAG(USE_VAAPI)
   VLOG(0) << __func__;
@@ -175,7 +180,9 @@ GpuVideoDecodeAcceleratorFactory::CreateVDA(
 #endif
 #if BUILDFLAG(USE_V4L2_CODEC)
     &GpuVideoDecodeAcceleratorFactory::CreateV4L2VDA,
+#if !BUILDFLAG(USE_LINUX_V4L2)
     &GpuVideoDecodeAcceleratorFactory::CreateV4L2SVDA,
+#endif
 #endif
 #if BUILDFLAG(USE_VAAPI)
     &GpuVideoDecodeAcceleratorFactory::CreateVaapiVDA,
@@ -235,6 +242,7 @@ GpuVideoDecodeAcceleratorFactory::CreateV4L2VDA(
   return decoder;
 }
 
+#if !BUILDFLAG(USE_LINUX_V4L2)
 std::unique_ptr<VideoDecodeAccelerator>
 GpuVideoDecodeAcceleratorFactory::CreateV4L2SVDA(
     const gpu::GpuDriverBugWorkarounds& workarounds,
@@ -250,6 +258,7 @@ GpuVideoDecodeAcceleratorFactory::CreateV4L2SVDA(
   }
   return decoder;
 }
+#endif
 #endif
 
 #if BUILDFLAG(USE_VAAPI)
