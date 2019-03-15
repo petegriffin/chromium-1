@@ -348,6 +348,7 @@ size_t V4L2WritableBufferRef::GetPlaneSize(const size_t plane) const {
     return 0;
   }
 
+  VLOGF(1) << "Plane size " << buffer_data_->v4l2_buffer_.m.planes[plane].length;
   return buffer_data_->v4l2_buffer_.m.planes[plane].length;
 }
 
@@ -387,7 +388,7 @@ void V4L2WritableBufferRef::SetPlaneBytesUsed(const size_t plane,
              << GetPlaneSize(plane) << ".";
     return;
   }
-
+  VLOGF(1) << __func__ << "plane " << plane << " bytes used = " <<  bytes_used;
   buffer_data_->v4l2_buffer_.m.planes[plane].bytesused = bytes_used;
 }
 
@@ -399,7 +400,7 @@ size_t V4L2WritableBufferRef::GetPlaneBytesUsed(const size_t plane) const {
     VLOGF(1) << "Invalid plane " << plane << " requested.";
     return 0;
   }
-
+  VLOGF(1) << __func__ << " plane " << plane << " bytes used = " <<  buffer_data_->v4l2_buffer_.m.planes[plane].bytesused;
   return buffer_data_->v4l2_buffer_.m.planes[plane].bytesused;
 }
 
@@ -554,14 +555,14 @@ size_t V4L2Queue::AllocateBuffers(size_t count, enum v4l2_memory memory) {
   reqbufs.count = count;
   reqbufs.type = type_;
   reqbufs.memory = memory;
-  DVLOGF(3) << "queue " << type_ << ": requesting " << count << " buffers.";
+  VLOGF(3) << "queue " << type_ << ": requesting " << count << " buffers.";
 
   ret = device_->Ioctl(VIDIOC_REQBUFS, &reqbufs);
   if (ret) {
     VPLOGF(1) << "VIDIOC_REQBUFS failed: ";
     return 0;
   }
-  DVLOGF(3) << "queue " << type_ << ": got " << reqbufs.count << " buffers.";
+  VLOGF(3) << "queue " << type_ << ": got " << reqbufs.count << " buffers.";
 
   memory_ = memory;
 
@@ -862,7 +863,7 @@ VideoPixelFormat V4L2Device::V4L2PixFmtToVideoPixelFormat(uint32_t pix_fmt) {
       return PIXEL_FORMAT_ARGB;
 
     default:
-      DVLOGF(1) << "Add more cases as needed";
+      VLOGF(1) << "Add more cases as needed";
       return PIXEL_FORMAT_UNKNOWN;
   }
 }
@@ -1006,26 +1007,31 @@ std::vector<VideoCodecProfile> V4L2Device::V4L2PixFmtToVideoCodecProfiles(
 
 // static
 uint32_t V4L2Device::V4L2PixFmtToDrmFormat(uint32_t format) {
+  VLOG(0) << __func__ << FourccToString(format);
   switch (format) {
     case V4L2_PIX_FMT_NV12:
     case V4L2_PIX_FMT_NV12M:
+      VLOG(0) << __func__ << "V4L2_PIX_FMT_NV12/V4L2_PIX_FMT_NV12M";
       return DRM_FORMAT_NV12;
 
     case V4L2_PIX_FMT_YUV420:
     case V4L2_PIX_FMT_YUV420M:
+      VLOG(0) << __func__ << "V4L2_PIX_FMT_YUV420/V4L2_PIX_FMT_YUV420M";
       return DRM_FORMAT_YUV420;
 
     case V4L2_PIX_FMT_YVU420:
+      VLOG(0) << __func__ << "V4L2_PIX_FMT_YVU420";
       return DRM_FORMAT_YVU420;
 
     case V4L2_PIX_FMT_RGB32:
+      VLOG(0) << __func__ << "V4L2_PIX_FMT_RGB32";
       return DRM_FORMAT_ARGB8888;
 
     case V4L2_PIX_FMT_MT21C:
       return DRM_FORMAT_MT21;
 
     default:
-      DVLOGF(1) << "Unrecognized format " << FourccToString(format);
+      VLOGF(1) << "Unrecognized format " << FourccToString(format);
       return 0;
   }
 }
@@ -1057,7 +1063,7 @@ int32_t V4L2Device::VideoCodecProfileToV4L2H264Profile(
     case H264PROFILE_MULTIVIEWHIGH:
       return V4L2_MPEG_VIDEO_H264_PROFILE_MULTIVIEW_HIGH;
     default:
-      DVLOGF(1) << "Add more cases as needed";
+      VLOGF(1) << "Add more cases as needed";
       return -1;
   }
 }
@@ -1098,7 +1104,7 @@ int32_t V4L2Device::H264LevelIdcToV4L2H264Level(uint8_t level_idc) {
     case 51:
       return V4L2_MPEG_VIDEO_H264_LEVEL_5_1;
     default:
-      DVLOGF(1) << "Unrecognized level_idc: " << static_cast<int>(level_idc);
+      VLOGF(1) << "Unrecognized level_idc: " << static_cast<int>(level_idc);
       return -1;
   }
 }
@@ -1173,7 +1179,7 @@ gfx::Size V4L2Device::CodedSizeFromV4L2Format(struct v4l2_format format) {
   // aligning to next full row.
   if (sizeimage > VideoFrame::AllocationSize(frame_format, coded_size))
     coded_size.SetSize(coded_width, coded_height + 1);
-  DVLOGF(3) << "coded_size=" << coded_size.ToString();
+  VLOGF(3) << "coded_size=" << coded_size.ToString();
 
   // Sanity checks. Calculated coded size has to contain given visible size
   // and fulfill buffer byte size requirements.
@@ -1374,7 +1380,7 @@ std::vector<uint32_t> V4L2Device::EnumerateSupportedPixelformats(
   fmtdesc.type = buf_type;
 
   for (; Ioctl(VIDIOC_ENUM_FMT, &fmtdesc) == 0; ++fmtdesc.index) {
-    DVLOGF(3) << "Found " << fmtdesc.description << std::hex << " (0x"
+    VLOGF(3) << "Found " << fmtdesc.description << std::hex << " (0x"
               << fmtdesc.pixelformat << ")";
     pixelformats.push_back(fmtdesc.pixelformat);
   }
@@ -1386,7 +1392,7 @@ VideoDecodeAccelerator::SupportedProfiles
 V4L2Device::EnumerateSupportedDecodeProfiles(const size_t num_formats,
                                              const uint32_t pixelformats[]) {
   VideoDecodeAccelerator::SupportedProfiles profiles;
-
+  VLOGF(2);
   const auto& supported_pixelformats =
       EnumerateSupportedPixelformats(V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
 
@@ -1406,7 +1412,7 @@ V4L2Device::EnumerateSupportedDecodeProfiles(const size_t num_formats,
       profile.profile = video_codec_profile;
       profiles.push_back(profile);
 
-      DVLOGF(3) << "Found decoder profile " << GetProfileName(profile.profile)
+      VLOGF(3) << "Found decoder profile " << GetProfileName(profile.profile)
                 << ", resolutions: " << profile.min_resolution.ToString() << " "
                 << profile.max_resolution.ToString();
     }
@@ -1418,7 +1424,7 @@ V4L2Device::EnumerateSupportedDecodeProfiles(const size_t num_formats,
 VideoEncodeAccelerator::SupportedProfiles
 V4L2Device::EnumerateSupportedEncodeProfiles() {
   VideoEncodeAccelerator::SupportedProfiles profiles;
-
+  VLOGF(4);
   const auto& supported_pixelformats =
       EnumerateSupportedPixelformats(V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
 
@@ -1437,7 +1443,7 @@ V4L2Device::EnumerateSupportedEncodeProfiles() {
       profile.profile = video_codec_profile;
       profiles.push_back(profile);
 
-      DVLOGF(3) << "Found encoder profile " << GetProfileName(profile.profile)
+      VLOGF(3) << "Found encoder profile " << GetProfileName(profile.profile)
                 << ", max resolution: " << profile.max_resolution.ToString();
     }
   }
