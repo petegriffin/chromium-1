@@ -34,7 +34,7 @@ void VP9Decoder::SetStream(int32_t id,
                            const DecryptConfig* decrypt_config) {
   DCHECK(ptr);
   DCHECK(size);
-  DVLOG(4) << "New input stream id: " << id << " at: " << (void*)ptr
+  VLOG(4) << "New input stream id: " << id << " at: " << (void*)ptr
            << " size: " << size;
   stream_id_ = id;
   if (decrypt_config) {
@@ -45,7 +45,7 @@ void VP9Decoder::SetStream(int32_t id,
 }
 
 bool VP9Decoder::Flush() {
-  DVLOG(2) << "Decoder flush";
+  VLOG(2) << "Decoder flush";
   Reset();
   return true;
 }
@@ -78,12 +78,12 @@ VP9Decoder::DecodeResult VP9Decoder::Decode() {
           return kRanOutOfStreamData;
 
         case Vp9Parser::kInvalidStream:
-          DVLOG(1) << "Error parsing stream";
+          VLOG(1) << "Error parsing stream";
           SetError();
           return kDecodeError;
 
         case Vp9Parser::kAwaitingRefresh:
-          DVLOG(4) << "Awaiting context update";
+          VLOG(4) << "Awaiting context update";
           return kNeedContextUpdate;
       }
     }
@@ -109,7 +109,7 @@ VP9Decoder::DecodeResult VP9Decoder::Decode() {
       // and continue decoding subsequent frames.
       size_t frame_to_show = curr_frame_hdr_->frame_to_show_map_idx;
       if (frame_to_show >= ref_frames_.size() || !ref_frames_[frame_to_show]) {
-        DVLOG(1) << "Request to show an invalid frame";
+        VLOG(1) << "Request to show an invalid frame";
         SetError();
         return kDecodeError;
       }
@@ -118,7 +118,7 @@ VP9Decoder::DecodeResult VP9Decoder::Decode() {
       // correct timestamp.
       scoped_refptr<VP9Picture> pic = ref_frames_[frame_to_show]->Duplicate();
       if (pic == nullptr) {
-        DVLOG(1) << "Failed to duplicate the VP9Picture.";
+        VLOG(1) << "Failed to duplicate the VP9Picture.";
         SetError();
         return kDecodeError;
       }
@@ -137,14 +137,14 @@ VP9Decoder::DecodeResult VP9Decoder::Decode() {
     DCHECK(!new_pic_size.IsEmpty());
 
     if (new_pic_size != pic_size_) {
-      DVLOG(1) << "New resolution: " << new_pic_size.ToString();
+      VLOG(1) << "New resolution: " << new_pic_size.ToString();
 
       if (!curr_frame_hdr_->IsKeyframe() &&
           (curr_frame_hdr_->IsIntra() && pic_size_.IsEmpty())) {
         // TODO(posciak): This is doable, but requires a few modifications to
         // VDA implementations to allow multiple picture buffer sets in flight.
         // http://crbug.com/832264
-        DVLOG(1) << "Resolution change currently supported for keyframes and "
+        VLOG(1) << "Resolution change currently supported for keyframes and "
                     "sequence begins with Intra only when there is no prior "
                     "frames in the context";
         if (++size_change_failure_counter_ > kVPxMaxNumOfSizeChangeFailures) {
@@ -176,12 +176,12 @@ VP9Decoder::DecodeResult VP9Decoder::Decode() {
                               curr_frame_hdr_->render_height);
     // For safety, check the validity of render size or leave it as (0, 0).
     if (!gfx::Rect(pic_size_).Contains(new_render_rect)) {
-      DVLOG(1) << "Render size exceeds picture size. render size: "
+      VLOG(1) << "Render size exceeds picture size. render size: "
                << new_render_rect.ToString()
                << ", picture size: " << pic_size_.ToString();
       new_render_rect = gfx::Rect();
     }
-    DVLOG(2) << "Render resolution: " << new_render_rect.ToString();
+    VLOG(2) << "Render resolution: " << new_render_rect.ToString();
 
     pic->set_visible_rect(new_render_rect);
     pic->set_bitstream_id(stream_id_);
