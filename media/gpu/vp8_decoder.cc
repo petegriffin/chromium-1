@@ -22,7 +22,7 @@ VP8Decoder::VP8Decoder(std::unique_ptr<VP8Accelerator> accelerator)
 VP8Decoder::~VP8Decoder() = default;
 
 bool VP8Decoder::Flush() {
-  DVLOG(2) << "Decoder flush";
+  VLOG(2) << "Decoder flush";
   Reset();
   return true;
 }
@@ -39,7 +39,7 @@ void VP8Decoder::SetStream(int32_t id,
     return;
   }
 
-  DVLOG(4) << "New input stream id: " << id << " at: " << (void*)ptr
+  VLOG(4) << "New input stream id: " << id << " at: " << (void*)ptr
            << " size: " << size;
   stream_id_ = id;
   curr_frame_start_ = ptr;
@@ -65,7 +65,7 @@ VP8Decoder::DecodeResult VP8Decoder::Decode() {
     curr_frame_hdr_.reset(new Vp8FrameHeader());
     if (!parser_.ParseFrame(curr_frame_start_, frame_size_,
                             curr_frame_hdr_.get())) {
-      DVLOG(1) << "Error during decode";
+      VLOG(1) << "Error during decode";
       state_ = kError;
       return kDecodeError;
     }
@@ -82,7 +82,7 @@ VP8Decoder::DecodeResult VP8Decoder::Decode() {
       return kDecodeError;
 
     if (new_picture_size != pic_size_) {
-      DVLOG(2) << "New resolution: " << new_picture_size.ToString();
+      VLOG(2) << "New resolution: " << new_picture_size.ToString();
       pic_size_ = new_picture_size;
 
       ref_frames_.Clear();
@@ -99,7 +99,7 @@ VP8Decoder::DecodeResult VP8Decoder::Decode() {
     // TODO(dshwang): if rtc decoder can know the size of inter frame, change
     // this condition to check if new keyframe is missed.
     // https://crbug.com/832545
-    DVLOG(4) << "Drop the frame because the size maybe stale.";
+    VLOG(4) << "Drop the frame because the size maybe stale.";
     if (have_skipped_frame &&
         ++size_change_failure_counter_ > kVPxMaxNumOfSizeChangeFailures) {
       state_ = kError;
