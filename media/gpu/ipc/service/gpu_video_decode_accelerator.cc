@@ -36,7 +36,7 @@ namespace {
 static gl::GLContext* GetGLContext(
     const base::WeakPtr<gpu::CommandBufferStub>& stub) {
   if (!stub) {
-    DLOG(ERROR) << "Stub is gone; no GLContext.";
+    VLOG(0) << "Stub is gone; no GLContext.";
     return nullptr;
   }
 
@@ -46,12 +46,12 @@ static gl::GLContext* GetGLContext(
 static bool MakeDecoderContextCurrent(
     const base::WeakPtr<gpu::CommandBufferStub>& stub) {
   if (!stub) {
-    DLOG(ERROR) << "Stub is gone; won't MakeCurrent().";
+    VLOG(0) << "Stub is gone; won't MakeCurrent().";
     return false;
   }
 
   if (!stub->decoder_context()->MakeCurrent()) {
-    DLOG(ERROR) << "Failed to MakeCurrent()";
+    VLOG(0) << "Failed to MakeCurrent()";
     return false;
   }
 
@@ -64,7 +64,7 @@ static bool BindImage(const base::WeakPtr<gpu::CommandBufferStub>& stub,
                       const scoped_refptr<gl::GLImage>& image,
                       bool can_bind_to_sampler) {
   if (!stub) {
-    DLOG(ERROR) << "Stub is gone; won't BindImage().";
+    VLOG(0) << "Stub is gone; won't BindImage().";
     return false;
   }
 
@@ -77,7 +77,7 @@ static bool BindImage(const base::WeakPtr<gpu::CommandBufferStub>& stub,
 static gpu::gles2::ContextGroup* GetContextGroup(
     const base::WeakPtr<gpu::CommandBufferStub>& stub) {
   if (!stub) {
-    DLOG(ERROR) << "Stub is gone; no DecoderContext.";
+    VLOG(0) << "Stub is gone; no DecoderContext.";
     return nullptr;
   }
 
@@ -95,7 +95,7 @@ static std::unique_ptr<gpu::gles2::AbstractTexture> CreateAbstractTexture(
     GLenum format,
     GLenum type) {
   if (!stub) {
-    DLOG(ERROR) << "Stub is gone; no DecoderContext.";
+    VLOG(0) << "Stub is gone; no DecoderContext.";
     return nullptr;
   }
 
@@ -179,6 +179,7 @@ GpuVideoDecodeAccelerator::GpuVideoDecodeAccelerator(
       io_task_runner_(io_task_runner),
       overlay_factory_cb_(overlay_factory_cb),
       weak_factory_for_io_(this) {
+  VLOG(0) << __func__;
   DCHECK(stub_);
   stub_->AddDestructionObserver(this);
   get_gl_context_cb_ = base::BindRepeating(&GetGLContext, stub_->AsWeakPtr());
@@ -194,6 +195,7 @@ GpuVideoDecodeAccelerator::GpuVideoDecodeAccelerator(
 GpuVideoDecodeAccelerator::~GpuVideoDecodeAccelerator() {
   // This class can only be self-deleted from OnWillDestroyStub(), which means
   // the VDA has already been destroyed in there.
+  VLOG(0) << __func__;
   DCHECK(!video_decode_accelerator_);
 }
 
@@ -202,6 +204,7 @@ gpu::VideoDecodeAcceleratorCapabilities
 GpuVideoDecodeAccelerator::GetCapabilities(
     const gpu::GpuPreferences& gpu_preferences,
     const gpu::GpuDriverBugWorkarounds& workarounds) {
+  VLOG(0) << __func__;
   return GpuVideoDecodeAcceleratorFactory::GetDecoderCapabilities(
       gpu_preferences, workarounds);
 }
@@ -230,7 +233,7 @@ bool GpuVideoDecodeAccelerator::OnMessageReceived(const IPC::Message& msg) {
 void GpuVideoDecodeAccelerator::NotifyInitializationComplete(bool success) {
   if (!Send(new AcceleratedVideoDecoderHostMsg_InitializationComplete(
           host_route_id_, success)))
-    DLOG(ERROR)
+    VLOG(0)
         << "Send(AcceleratedVideoDecoderHostMsg_InitializationComplete) failed";
 }
 
@@ -249,7 +252,7 @@ void GpuVideoDecodeAccelerator::ProvidePictureBuffers(
   if (!Send(new AcceleratedVideoDecoderHostMsg_ProvidePictureBuffers(
           host_route_id_, requested_num_of_buffers, format, textures_per_buffer,
           dimensions, texture_target))) {
-    DLOG(ERROR) << "Send(AcceleratedVideoDecoderHostMsg_ProvidePictureBuffers) "
+    VLOG(0) << "Send(AcceleratedVideoDecoderHostMsg_ProvidePictureBuffers) "
                 << "failed";
   }
   texture_dimensions_ = dimensions;
@@ -263,7 +266,7 @@ void GpuVideoDecodeAccelerator::DismissPictureBuffer(
   // Notify client that picture buffer is now unused.
   if (!Send(new AcceleratedVideoDecoderHostMsg_DismissPictureBuffer(
           host_route_id_, picture_buffer_id))) {
-    DLOG(ERROR) << "Send(AcceleratedVideoDecoderHostMsg_DismissPictureBuffer) "
+    VLOG(0) << "Send(AcceleratedVideoDecoderHostMsg_DismissPictureBuffer) "
                 << "failed";
   }
   DebugAutoLock auto_lock(debug_uncleared_textures_lock_);
@@ -293,7 +296,7 @@ void GpuVideoDecodeAccelerator::PictureReady(const Picture& picture) {
   params.wants_promotion_hint = picture.wants_promotion_hint();
   if (!Send(new AcceleratedVideoDecoderHostMsg_PictureReady(host_route_id_,
                                                             params))) {
-    DLOG(ERROR) << "Send(AcceleratedVideoDecoderHostMsg_PictureReady) failed";
+    VLOG(0) << "Send(AcceleratedVideoDecoderHostMsg_PictureReady) failed";
   }
 }
 
@@ -301,7 +304,7 @@ void GpuVideoDecodeAccelerator::NotifyEndOfBitstreamBuffer(
     int32_t bitstream_buffer_id) {
   if (!Send(new AcceleratedVideoDecoderHostMsg_BitstreamBufferProcessed(
           host_route_id_, bitstream_buffer_id))) {
-    DLOG(ERROR)
+    VLOG(0)
         << "Send(AcceleratedVideoDecoderHostMsg_BitstreamBufferProcessed) "
         << "failed";
   }
@@ -309,19 +312,19 @@ void GpuVideoDecodeAccelerator::NotifyEndOfBitstreamBuffer(
 
 void GpuVideoDecodeAccelerator::NotifyFlushDone() {
   if (!Send(new AcceleratedVideoDecoderHostMsg_FlushDone(host_route_id_)))
-    DLOG(ERROR) << "Send(AcceleratedVideoDecoderHostMsg_FlushDone) failed";
+    VLOG(0) << "Send(AcceleratedVideoDecoderHostMsg_FlushDone) failed";
 }
 
 void GpuVideoDecodeAccelerator::NotifyResetDone() {
   if (!Send(new AcceleratedVideoDecoderHostMsg_ResetDone(host_route_id_)))
-    DLOG(ERROR) << "Send(AcceleratedVideoDecoderHostMsg_ResetDone) failed";
+    VLOG(0) << "Send(AcceleratedVideoDecoderHostMsg_ResetDone) failed";
 }
 
 void GpuVideoDecodeAccelerator::NotifyError(
     VideoDecodeAccelerator::Error error) {
   if (!Send(new AcceleratedVideoDecoderHostMsg_ErrorNotification(host_route_id_,
                                                                  error))) {
-    DLOG(ERROR) << "Send(AcceleratedVideoDecoderHostMsg_ErrorNotification) "
+    VLOG(0) << "Send(AcceleratedVideoDecoderHostMsg_ErrorNotification) "
                 << "failed";
   }
 }
@@ -356,10 +359,11 @@ bool GpuVideoDecodeAccelerator::Send(IPC::Message* message) {
 
 bool GpuVideoDecodeAccelerator::Initialize(
     const VideoDecodeAccelerator::Config& config) {
+  VLOG(0) << __func__;
   DCHECK(!video_decode_accelerator_);
 
   if (!stub_->channel()->AddRoute(host_route_id_, stub_->sequence_id(), this)) {
-    DLOG(ERROR) << "Initialize(): failed to add route";
+    VLOG(0) << "Initialize(): failed to add route";
     return false;
   }
 
@@ -369,7 +373,7 @@ bool GpuVideoDecodeAccelerator::Initialize(
   if (!make_context_current_cb_.Run())
     return false;
 #endif
-
+  VLOG(0) << __func__;
   std::unique_ptr<GpuVideoDecodeAcceleratorFactory> vda_factory =
       GpuVideoDecodeAcceleratorFactory::CreateWithGLES2Decoder(
           get_gl_context_cb_, make_context_current_cb_, bind_image_cb_,
@@ -385,6 +389,7 @@ bool GpuVideoDecodeAccelerator::Initialize(
       stub_->channel()->gpu_channel_manager()->gpu_driver_bug_workarounds();
   const gpu::GpuPreferences& gpu_preferences =
       stub_->channel()->gpu_channel_manager()->gpu_preferences();
+  VLOG(0) << __func__;
   video_decode_accelerator_ =
       vda_factory->CreateVDA(this, config, gpu_workarounds, gpu_preferences);
   if (!video_decode_accelerator_) {
@@ -393,7 +398,7 @@ bool GpuVideoDecodeAccelerator::Initialize(
                << (config.is_encrypted() ? " with encryption" : "");
     return false;
   }
-
+  VLOG(0) << __func__;
   // Attempt to set up performing decoding tasks on IO thread, if supported by
   // the VDA.
   if (video_decode_accelerator_->TryToSetupDecodeOnSeparateThread(
@@ -410,6 +415,7 @@ bool GpuVideoDecodeAccelerator::Initialize(
 void GpuVideoDecodeAccelerator::OnDecode(
     const BitstreamBuffer& bitstream_buffer) {
   DCHECK(video_decode_accelerator_);
+  VLOG(0) << __func__;
   video_decode_accelerator_->Decode(bitstream_buffer);
 }
 
@@ -429,7 +435,7 @@ void GpuVideoDecodeAccelerator::OnAssignPictureBuffers(
   std::vector<std::vector<scoped_refptr<gpu::gles2::TextureRef>>> textures;
   for (uint32_t i = 0; i < buffer_ids.size(); ++i) {
     if (buffer_ids[i] < 0) {
-      DLOG(ERROR) << "Buffer id " << buffer_ids[i] << " out of range";
+      VLOG(0) << "Buffer id " << buffer_ids[i] << " out of range";
       NotifyError(VideoDecodeAccelerator::INVALID_ARGUMENT);
       return;
     }
@@ -437,7 +443,7 @@ void GpuVideoDecodeAccelerator::OnAssignPictureBuffers(
     PictureBuffer::TextureIds buffer_texture_ids = texture_ids[i];
     PictureBuffer::TextureIds service_ids;
     if (buffer_texture_ids.size() != textures_per_buffer_) {
-      DLOG(ERROR) << "Requested " << textures_per_buffer_
+      VLOG(0) << "Requested " << textures_per_buffer_
                   << " textures per picture buffer, got "
                   << buffer_texture_ids.size();
       NotifyError(VideoDecodeAccelerator::INVALID_ARGUMENT);
@@ -447,13 +453,13 @@ void GpuVideoDecodeAccelerator::OnAssignPictureBuffers(
       gpu::TextureBase* texture_base =
           decoder_context->GetTextureBase(buffer_texture_ids[j]);
       if (!texture_base) {
-        DLOG(ERROR) << "Failed to find texture id " << buffer_texture_ids[j];
+        VLOG(0) << "Failed to find texture id " << buffer_texture_ids[j];
         NotifyError(VideoDecodeAccelerator::INVALID_ARGUMENT);
         return;
       }
 
       if (texture_base->target() != texture_target_) {
-        DLOG(ERROR) << "Texture target mismatch for texture id "
+        VLOG(0) << "Texture target mismatch for texture id "
                     << buffer_texture_ids[j];
         NotifyError(VideoDecodeAccelerator::INVALID_ARGUMENT);
         return;
@@ -478,7 +484,7 @@ void GpuVideoDecodeAccelerator::OnAssignPictureBuffers(
           info->GetLevelSize(texture_target_, 0, &width, &height, nullptr);
           if (width != texture_dimensions_.width() ||
               height != texture_dimensions_.height()) {
-            DLOG(ERROR) << "Size mismatch for texture id "
+            VLOG(0) << "Size mismatch for texture id "
                         << buffer_texture_ids[j];
             NotifyError(VideoDecodeAccelerator::INVALID_ARGUMENT);
             return;
