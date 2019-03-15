@@ -94,7 +94,7 @@ GpuVideoDecoder::GpuVideoDecoder(
 }
 
 void GpuVideoDecoder::Reset(const base::Closure& closure) {
-  DVLOG(3) << "Reset()";
+  VLOG(3) << "Reset()";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
 
   if (state_ == kDrainingDecoder) {
@@ -159,7 +159,7 @@ void GpuVideoDecoder::Initialize(
     const InitCB& init_cb,
     const OutputCB& output_cb,
     const WaitingForDecryptionKeyCB& /* waiting_for_decryption_key_cb */) {
-  DVLOG(3) << "Initialize()";
+  VLOG(3) << "Initialize()";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
   DCHECK(config.IsValidConfig());
 
@@ -168,20 +168,20 @@ void GpuVideoDecoder::Initialize(
                  BindToCurrentLoop(init_cb), media_log_);
 
   bool previously_initialized = config_.IsValidConfig();
-  DVLOG(1) << (previously_initialized ? "Reinitializing" : "Initializing")
+  VLOG(1) << (previously_initialized ? "Reinitializing" : "Initializing")
            << " GVD with config: " << config.AsHumanReadableString();
 
   auto encryption_mode = config.encryption_scheme().mode();
   if (encryption_mode != EncryptionScheme::CIPHER_MODE_UNENCRYPTED &&
       encryption_mode != EncryptionScheme::CIPHER_MODE_AES_CTR) {
-    DVLOG(1) << "VDAs only support clear or cenc encrypted streams.";
+    VLOG(1) << "VDAs only support clear or cenc encrypted streams.";
     bound_init_cb.Run(false);
     return;
   }
 
   // Disallow codec changes between configuration changes.
   if (previously_initialized && config_.codec() != config.codec()) {
-    DVLOG(1) << "Codec changed, cannot reinitialize.";
+    VLOG(1) << "Codec changed, cannot reinitialize.";
     bound_init_cb.Run(false);
     return;
   }
@@ -189,7 +189,7 @@ void GpuVideoDecoder::Initialize(
   // TODO(sandersd): This should be moved to capabilities if we ever have a
   // hardware decoder which supports alpha formats.
   if (config.format() == PIXEL_FORMAT_I420A) {
-    DVLOG(1) << "Alpha transparency formats are not supported.";
+    VLOG(1) << "Alpha transparency formats are not supported.";
     bound_init_cb.Run(false);
     return;
   }
@@ -201,14 +201,14 @@ void GpuVideoDecoder::Initialize(
       capabilities.flags &
       VideoDecodeAccelerator::Capabilities::SUPPORTS_ENCRYPTED_STREAMS;
   if (config.is_encrypted() && (!cdm_context || !supports_encrypted_streams)) {
-    DVLOG(1) << "Encrypted stream not supported.";
+    VLOG(1) << "Encrypted stream not supported.";
     bound_init_cb.Run(false);
     return;
   }
 
   if (!IsProfileSupported(capabilities, config.profile(), config.coded_size(),
                           config.is_encrypted())) {
-    DVLOG(1) << "Unsupported profile " << GetProfileName(config.profile())
+    VLOG(1) << "Unsupported profile " << GetProfileName(config.profile())
              << ", unsupported coded size " << config.coded_size().ToString()
              << ", or accelerator should only be used for encrypted content. "
              << " is_encrypted: " << (config.is_encrypted() ? "yes." : "no.");
@@ -249,14 +249,14 @@ void GpuVideoDecoder::Initialize(
     min_shared_memory_segment_size_ = 32 * 1024;
 
   if (config.is_encrypted() && !supports_deferred_initialization_) {
-    DVLOG(1) << __func__
+    VLOG(1) << __func__
              << " Encrypted stream requires deferred initialialization.";
     bound_init_cb.Run(false);
     return;
   }
 
   if (previously_initialized) {
-    DVLOG(3) << __func__
+    VLOG(3) << __func__
              << " Expecting initialized VDA to detect in-stream config change.";
     // Reinitialization with a different config (but same codec and profile).
     // VDA should handle it by detecting this in-stream by itself,
@@ -267,7 +267,7 @@ void GpuVideoDecoder::Initialize(
 
   vda_ = factories_->CreateVideoDecodeAccelerator();
   if (!vda_) {
-    DVLOG(1) << "Failed to create a VDA.";
+    VLOG(1) << "Failed to create a VDA.";
     bound_init_cb.Run(false);
     return;
   }
@@ -276,7 +276,7 @@ void GpuVideoDecoder::Initialize(
     cdm_id_ = cdm_context->GetCdmId();
 
   if (config.is_encrypted() && cdm_id_ == CdmContext::kInvalidCdmId) {
-    DVLOG(1) << "CDM ID not available.";
+    VLOG(1) << "CDM ID not available.";
     bound_init_cb.Run(false);
     return;
   }
@@ -356,7 +356,7 @@ void GpuVideoDecoder::CompleteInitialization(const OverlayInfo& overlay_info) {
 
   vda_initialized_ = true;
   if (!vda_->Initialize(vda_config, this)) {
-    DVLOG(1) << "VDA::Initialize failed.";
+    VLOG(1) << "VDA::Initialize failed.";
     // It's important to set |vda_| to null so that OnSurfaceAvailable() will
     // not call SetSurface() on a nonexistent remote VDA.
     DestroyVDA();
@@ -372,7 +372,7 @@ void GpuVideoDecoder::CompleteInitialization(const OverlayInfo& overlay_info) {
 }
 
 void GpuVideoDecoder::NotifyInitializationComplete(bool success) {
-  DVLOG_IF(1, !success) << __func__ << " Deferred initialization failed.";
+  VLOG_IF(1, !success) << __func__ << " Deferred initialization failed.";
 
   if (init_cb_)
     std::move(init_cb_).Run(success);
@@ -410,7 +410,7 @@ void GpuVideoDecoder::Decode(scoped_refptr<DecoderBuffer> buffer,
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
   DCHECK(!pending_reset_cb_);
 
-  DVLOG(3) << __func__ << " " << buffer->AsHumanReadableString();
+  VLOG(3) << __func__ << " " << buffer->AsHumanReadableString();
 
   DecodeCB bound_decode_cb = BindToCurrentLoop(decode_cb);
 
@@ -434,7 +434,7 @@ void GpuVideoDecoder::Decode(scoped_refptr<DecoderBuffer> buffer,
   DCHECK_EQ(state_, kNormal);
 
   if (buffer->end_of_stream()) {
-    DVLOG(3) << __func__ << " Initiating Flush for EOS.";
+    VLOG(3) << __func__ << " Initiating Flush for EOS.";
     state_ = kDrainingDecoder;
     eos_decode_cb_ = bound_decode_cb;
     vda_->Flush();
@@ -541,7 +541,7 @@ void GpuVideoDecoder::ProvidePictureBuffers(uint32_t count,
                                             uint32_t textures_per_buffer,
                                             const gfx::Size& size,
                                             uint32_t texture_target) {
-  DVLOG(3) << "ProvidePictureBuffers(" << count << ", " << size.width() << "x"
+  VLOG(3) << "ProvidePictureBuffers(" << count << ", " << size.width() << "x"
            << size.height() << ")";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
 
@@ -591,7 +591,7 @@ void GpuVideoDecoder::ProvidePictureBuffers(uint32_t count,
 }
 
 void GpuVideoDecoder::DismissPictureBuffer(int32_t id) {
-  DVLOG(3) << "DismissPictureBuffer(" << id << ")";
+  VLOG(3) << "DismissPictureBuffer(" << id << ")";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
 
   auto it = assigned_picture_buffers_.find(id);
@@ -612,7 +612,7 @@ void GpuVideoDecoder::DismissPictureBuffer(int32_t id) {
 }
 
 void GpuVideoDecoder::PictureReady(const media::Picture& picture) {
-  DVLOG(3) << "PictureReady()";
+  VLOG(3) << "PictureReady()";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
 
   auto it = assigned_picture_buffers_.find(picture.picture_buffer_id());
@@ -628,7 +628,7 @@ void GpuVideoDecoder::PictureReady(const media::Picture& picture) {
     // requesting new PictureBuffers. Sending a Picture of unmatched size is
     // the signal that we should update the size of our PictureBuffer.
     DCHECK(pb.size() != picture.visible_rect().size());
-    DVLOG(3) << __func__ << " Updating size of PictureBuffer[" << pb.id()
+    VLOG(3) << __func__ << " Updating size of PictureBuffer[" << pb.id()
              << "] from:" << pb.size().ToString()
              << " to:" << picture.visible_rect().size().ToString();
     pb.set_size(picture.visible_rect().size());
@@ -733,7 +733,7 @@ void GpuVideoDecoder::ReleaseMailbox(
 }
 
 void GpuVideoDecoder::ReusePictureBuffer(int64_t picture_buffer_id) {
-  DVLOG(3) << "ReusePictureBuffer(" << picture_buffer_id << ")";
+  VLOG(3) << "ReusePictureBuffer(" << picture_buffer_id << ")";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
 
   auto iter_range = picture_buffers_at_display_.equal_range(picture_buffer_id);
@@ -795,7 +795,7 @@ void GpuVideoDecoder::PutSharedMemory(
 }
 
 void GpuVideoDecoder::NotifyEndOfBitstreamBuffer(int32_t id) {
-  DVLOG(3) << "NotifyEndOfBitstreamBuffer(" << id << ")";
+  VLOG(3) << "NotifyEndOfBitstreamBuffer(" << id << ")";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
 
   auto it = bitstream_buffers_in_decoder_.find(id);
@@ -812,7 +812,7 @@ void GpuVideoDecoder::NotifyEndOfBitstreamBuffer(int32_t id) {
 }
 
 GpuVideoDecoder::~GpuVideoDecoder() {
-  DVLOG(3) << __func__;
+  VLOG(3) << __func__;
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
 
   if (vda_)
@@ -836,7 +836,7 @@ GpuVideoDecoder::~GpuVideoDecoder() {
 }
 
 void GpuVideoDecoder::NotifyFlushDone() {
-  DVLOG(3) << "NotifyFlushDone()";
+  VLOG(3) << "NotifyFlushDone()";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
   DCHECK_EQ(state_, kDrainingDecoder);
   state_ = kDecoderDrained;
@@ -848,7 +848,7 @@ void GpuVideoDecoder::NotifyFlushDone() {
 }
 
 void GpuVideoDecoder::NotifyResetDone() {
-  DVLOG(3) << "NotifyResetDone()";
+  VLOG(3) << "NotifyResetDone()";
   DCheckGpuVideoAcceleratorFactoriesTaskRunnerIsCurrent();
   DCHECK(bitstream_buffers_in_decoder_.empty());
 
