@@ -236,7 +236,7 @@ bool H264Decoder::CalculatePicOrderCounts(scoped_refptr<H264Picture> pic) {
       int expected_pic_order_cnt = 0;
       if (abs_frame_num > 0) {
         if (sps->num_ref_frames_in_pic_order_cnt_cycle == 0) {
-          DVLOG(1) << "Invalid num_ref_frames_in_pic_order_cnt_cycle "
+          VLOG(1) << "Invalid num_ref_frames_in_pic_order_cnt_cycle "
                    << "in stream";
           return false;
         }
@@ -306,7 +306,7 @@ bool H264Decoder::CalculatePicOrderCounts(scoped_refptr<H264Picture> pic) {
     }
 
     default:
-      DVLOG(1) << "Invalid pic_order_cnt_type: " << sps->pic_order_cnt_type;
+      VLOG(1) << "Invalid pic_order_cnt_type: " << sps->pic_order_cnt_type;
       return false;
   }
 
@@ -571,7 +571,7 @@ bool H264Decoder::ModifyReferencePicList(const H264SliceHeader* slice_hdr,
                   H264SliceHeader::kRefListModSize);
         pic = dpb_.GetShortRefPicByPicNum(pic_num_lx);
         if (!pic) {
-          DVLOG(1) << "Malformed stream, no pic num " << pic_num_lx;
+          VLOG(1) << "Malformed stream, no pic num " << pic_num_lx;
           return false;
         }
         ShiftRightAndInsert(ref_pic_listx, ref_idx_lx,
@@ -591,7 +591,7 @@ bool H264Decoder::ModifyReferencePicList(const H264SliceHeader* slice_hdr,
                   H264SliceHeader::kRefListModSize);
         pic = dpb_.GetLongRefPicByLongTermPicNum(list_mod->long_term_pic_num);
         if (!pic) {
-          DVLOG(1) << "Malformed stream, no pic num "
+          VLOG(1) << "Malformed stream, no pic num "
                    << list_mod->long_term_pic_num;
           return false;
         }
@@ -614,7 +614,7 @@ bool H264Decoder::ModifyReferencePicList(const H264SliceHeader* slice_hdr,
 
       default:
         // May be recoverable.
-        DVLOG(1) << "Invalid modification_of_pic_nums_idc="
+        VLOG(1) << "Invalid modification_of_pic_nums_idc="
                  << list_mod->modification_of_pic_nums_idc << " in position "
                  << i;
         break;
@@ -642,16 +642,16 @@ void H264Decoder::OutputPic(scoped_refptr<H264Picture> pic) {
   pic->set_colorspace(colorspace_for_frame);
 
   if (pic->nonexisting) {
-    DVLOG(4) << "Skipping output, non-existing frame_num: " << pic->frame_num;
+    VLOG(4) << "Skipping output, non-existing frame_num: " << pic->frame_num;
     return;
   }
 
-  DVLOG_IF(1, pic->pic_order_cnt < last_output_poc_)
+  VLOG_IF(1, pic->pic_order_cnt < last_output_poc_)
       << "Outputting out of order, likely a broken stream: " << last_output_poc_
       << " -> " << pic->pic_order_cnt;
   last_output_poc_ = pic->pic_order_cnt;
 
-  DVLOG(4) << "Posting output task for POC: " << pic->pic_order_cnt;
+  VLOG(4) << "Posting output task for POC: " << pic->pic_order_cnt;
   accelerator_->OutputPicture(pic);
 }
 
@@ -676,13 +676,13 @@ bool H264Decoder::OutputAllRemainingPics() {
 }
 
 bool H264Decoder::Flush() {
-  DVLOG(2) << "Decoder flush";
+  VLOG(2) << "Decoder flush";
 
   if (!OutputAllRemainingPics())
     return false;
 
   ClearDPB();
-  DVLOG(2) << "Decoder flush finished";
+  VLOG(2) << "Decoder flush finished";
   return true;
 }
 
@@ -747,7 +747,7 @@ bool H264Decoder::HandleMemoryManagementOps(scoped_refptr<H264Picture> pic) {
         if (to_mark) {
           to_mark->ref = false;
         } else {
-          DVLOG(1) << "Invalid short ref pic num to unmark";
+          VLOG(1) << "Invalid short ref pic num to unmark";
           return false;
         }
         break;
@@ -760,7 +760,7 @@ bool H264Decoder::HandleMemoryManagementOps(scoped_refptr<H264Picture> pic) {
         if (to_mark) {
           to_mark->ref = false;
         } else {
-          DVLOG(1) << "Invalid long term ref pic num to unmark";
+          VLOG(1) << "Invalid long term ref pic num to unmark";
           return false;
         }
         break;
@@ -775,7 +775,7 @@ bool H264Decoder::HandleMemoryManagementOps(scoped_refptr<H264Picture> pic) {
           to_mark->long_term = true;
           to_mark->long_term_frame_idx = ref_pic_marking->long_term_frame_idx;
         } else {
-          DVLOG(1) << "Invalid short term ref pic num to mark as long ref";
+          VLOG(1) << "Invalid short term ref pic num to mark as long ref";
           return false;
         }
         break;
@@ -882,7 +882,7 @@ bool H264Decoder::SlidingWindowPictureMarking() {
     scoped_refptr<H264Picture> to_unmark =
         dpb_.GetLowestFrameNumWrapShortRefPic();
     if (!to_unmark) {
-      DVLOG(1) << "Couldn't find a short ref picture to unmark";
+      VLOG(1) << "Couldn't find a short ref picture to unmark";
       return false;
     }
 
@@ -912,7 +912,7 @@ bool H264Decoder::FinishPicture(scoped_refptr<H264Picture> pic) {
   // them as such.
   dpb_.DeleteUnused();
 
-  DVLOG(4) << "Finishing picture frame_num: " << pic->frame_num
+  VLOG(4) << "Finishing picture frame_num: " << pic->frame_num
            << ", entries in DPB: " << dpb_.size();
 
   // The ownership of pic will either be transferred to DPB - if the picture is
@@ -944,7 +944,7 @@ bool H264Decoder::FinishPicture(scoped_refptr<H264Picture> pic) {
          // to output more. This may cause out-of-order output, but is not
          // fatal, and better than failing instead.
          ((dpb_.IsFull() && (!pic->outputted || pic->ref)) && num_remaining)) {
-    DVLOG_IF(1, num_remaining <= max_num_reorder_frames_)
+    VLOG_IF(1, num_remaining <= max_num_reorder_frames_)
         << "Invalid stream: max_num_reorder_frames not preserved";
 
     OutputPic(*output_candidate);
@@ -967,7 +967,7 @@ bool H264Decoder::FinishPicture(scoped_refptr<H264Picture> pic) {
     if (dpb_.IsFull()) {
       // If we haven't managed to output anything to free up space in DPB
       // to store this picture, it's an error in the stream.
-      DVLOG(1) << "Could not free up space in DPB!";
+      VLOG(1) << "Could not free up space in DPB!";
       return false;
     }
 
@@ -982,7 +982,7 @@ bool H264Decoder::UpdateMaxNumReorderFrames(const H264SPS* sps) {
     max_num_reorder_frames_ =
         base::checked_cast<size_t>(sps->max_num_reorder_frames);
     if (max_num_reorder_frames_ > dpb_.max_num_pics()) {
-      DVLOG(1)
+      VLOG(1)
           << "max_num_reorder_frames present, but larger than MaxDpbFrames ("
           << max_num_reorder_frames_ << " > " << dpb_.max_num_pics() << ")";
       max_num_reorder_frames_ = 0;
@@ -1015,7 +1015,7 @@ bool H264Decoder::UpdateMaxNumReorderFrames(const H264SPS* sps) {
 }
 
 bool H264Decoder::ProcessSPS(int sps_id, bool* need_new_buffers) {
-  DVLOG(4) << "Processing SPS id:" << sps_id;
+  VLOG(4) << "Processing SPS id:" << sps_id;
 
   const H264SPS* sps = parser_.GetSPS(sps_id);
   if (!sps)
@@ -1024,13 +1024,13 @@ bool H264Decoder::ProcessSPS(int sps_id, bool* need_new_buffers) {
   *need_new_buffers = false;
 
   if (sps->frame_mbs_only_flag == 0) {
-    DVLOG(1) << "frame_mbs_only_flag != 1 not supported";
+    VLOG(1) << "frame_mbs_only_flag != 1 not supported";
     return false;
   }
 
   gfx::Size new_pic_size = sps->GetCodedSize().value_or(gfx::Size());
   if (new_pic_size.IsEmpty()) {
-    DVLOG(1) << "Invalid picture size";
+    VLOG(1) << "Invalid picture size";
     return false;
   }
 
@@ -1039,7 +1039,7 @@ bool H264Decoder::ProcessSPS(int sps_id, bool* need_new_buffers) {
 
   // Verify that the values are not too large before multiplying.
   if (std::numeric_limits<int>::max() / width_mb < height_mb) {
-    DVLOG(1) << "Picture size is too big: " << new_pic_size.ToString();
+    VLOG(1) << "Picture size is too big: " << new_pic_size.ToString();
     return false;
   }
 
@@ -1060,7 +1060,7 @@ bool H264Decoder::ProcessSPS(int sps_id, bool* need_new_buffers) {
   // MaxDpbFrames from level limits per spec.
   size_t max_dpb_frames = std::min(max_dpb_mbs / (width_mb * height_mb),
                                    static_cast<int>(H264DPB::kDPBMaxSize));
-  DVLOG(1) << "MaxDpbFrames: " << max_dpb_frames
+  VLOG(1) << "MaxDpbFrames: " << max_dpb_frames
            << ", max_num_ref_frames: " << sps->max_num_ref_frames
            << ", max_dec_frame_buffering: " << sps->max_dec_frame_buffering;
 
@@ -1071,17 +1071,17 @@ bool H264Decoder::ProcessSPS(int sps_id, bool* need_new_buffers) {
   // Some non-conforming streams specify more frames are needed than the current
   // level limit. Allow this, but only up to the maximum number of reference
   // frames allowed per spec.
-  DVLOG_IF(1, max_dpb_size > max_dpb_frames)
+  VLOG_IF(1, max_dpb_size > max_dpb_frames)
       << "Invalid stream, DPB size > MaxDpbFrames";
   if (max_dpb_size == 0 || max_dpb_size > H264DPB::kDPBMaxSize) {
-    DVLOG(1) << "Invalid DPB size: " << max_dpb_size;
+    VLOG(1) << "Invalid DPB size: " << max_dpb_size;
     return false;
   }
 
   if ((pic_size_ != new_pic_size) || (dpb_.max_num_pics() != max_dpb_size)) {
     if (!Flush())
       return false;
-    DVLOG(1) << "Codec level: " << level << ", DPB size: " << max_dpb_size
+    VLOG(1) << "Codec level: " << level << ", DPB size: " << max_dpb_size
              << ", Picture size: " << new_pic_size.ToString();
     *need_new_buffers = true;
     pic_size_ = new_pic_size;
@@ -1090,13 +1090,13 @@ bool H264Decoder::ProcessSPS(int sps_id, bool* need_new_buffers) {
 
   gfx::Rect new_visible_rect = sps->GetVisibleRect().value_or(gfx::Rect());
   if (visible_rect_ != new_visible_rect) {
-    DVLOG(2) << "New visible rect: " << new_visible_rect.ToString();
+    VLOG(2) << "New visible rect: " << new_visible_rect.ToString();
     visible_rect_ = new_visible_rect;
   }
 
   if (!UpdateMaxNumReorderFrames(sps))
     return false;
-  DVLOG(1) << "max_num_reorder_frames: " << max_num_reorder_frames_;
+  VLOG(1) << "max_num_reorder_frames: " << max_num_reorder_frames_;
 
   return true;
 }
@@ -1123,11 +1123,11 @@ bool H264Decoder::HandleFrameNumGap(int frame_num) {
     return false;
 
   if (!sps->gaps_in_frame_num_value_allowed_flag) {
-    DVLOG(1) << "Invalid frame_num: " << frame_num;
+    VLOG(1) << "Invalid frame_num: " << frame_num;
     return false;
   }
 
-  DVLOG(2) << "Handling frame_num gap: " << prev_ref_frame_num_ << "->"
+  VLOG(2) << "Handling frame_num gap: " << prev_ref_frame_num_ << "->"
            << frame_num;
 
   // 7.4.3/7-23
@@ -1163,7 +1163,7 @@ H264Decoder::H264Accelerator::Status H264Decoder::PreprocessCurrentSlice() {
     DCHECK(!curr_pic_);
 
     if (slice_hdr->first_mb_in_slice != 0) {
-      DVLOG(1) << "ASO/invalid stream, first_mb_in_slice: "
+      VLOG(1) << "ASO/invalid stream, first_mb_in_slice: "
                << slice_hdr->first_mb_in_slice;
       return H264Accelerator::Status::kFail;
     }
@@ -1211,7 +1211,7 @@ H264Decoder::H264Accelerator::Status H264Decoder::ProcessCurrentSlice() {
 
 #define SET_ERROR_AND_RETURN()         \
   do {                                 \
-    DVLOG(1) << "Error during decode"; \
+    VLOG(1) << "Error during decode"; \
     state_ = kError;                   \
     return H264Decoder::kDecodeError;  \
   } while (0)
@@ -1223,7 +1223,7 @@ H264Decoder::H264Accelerator::Status H264Decoder::ProcessCurrentSlice() {
       case H264Accelerator::Status::kOk:           \
         break;                                     \
       case H264Accelerator::Status::kTryAgain:     \
-        DVLOG(1) << #func " needs to try again";   \
+        VLOG(1) << #func " needs to try again";   \
         return H264Decoder::kTryAgain;             \
       case H264Accelerator::Status::kFail:         \
       case H264Accelerator::Status::kNotSupported: \
@@ -1238,7 +1238,7 @@ void H264Decoder::SetStream(int32_t id,
   DCHECK(ptr);
   DCHECK(size);
 
-  DVLOG(4) << "New input stream id: " << id << " at: " << (void*)ptr
+  VLOG(4) << "New input stream id: " << id << " at: " << (void*)ptr
            << " size: " << size;
   stream_id_ = id;
   current_stream_ = ptr;
@@ -1255,7 +1255,7 @@ void H264Decoder::SetStream(int32_t id,
 
 H264Decoder::DecodeResult H264Decoder::Decode() {
   if (state_ == kError) {
-    DVLOG(1) << "Decoder in error state";
+    VLOG(1) << "Decoder in error state";
     return kDecodeError;
   }
 
@@ -1272,7 +1272,7 @@ H264Decoder::DecodeResult H264Decoder::Decode() {
         // so everything will be done through the parser.
         break;
       case H264Accelerator::Status::kTryAgain:
-        DVLOG(1) << "SetStream() needs to try again";
+        VLOG(1) << "SetStream() needs to try again";
         return H264Decoder::kTryAgain;
       case H264Accelerator::Status::kFail:
         SET_ERROR_AND_RETURN();
@@ -1294,7 +1294,7 @@ H264Decoder::DecodeResult H264Decoder::Decode() {
       else if (par_res != H264Parser::kOk)
         SET_ERROR_AND_RETURN();
 
-      DVLOG(4) << "New NALU: " << static_cast<int>(curr_nalu_->nal_unit_type);
+      VLOG(4) << "New NALU: " << static_cast<int>(curr_nalu_->nal_unit_type);
     }
 
     switch (curr_nalu_->nal_unit_type) {
@@ -1331,7 +1331,7 @@ H264Decoder::DecodeResult H264Decoder::Decode() {
             case H264Accelerator::Status::kOk:
               break;
             case H264Accelerator::Status::kTryAgain:
-              DVLOG(1) << "ParseSliceHeader() needs to try again";
+              VLOG(1) << "ParseSliceHeader() needs to try again";
               // reset |curr_slice_hdr_| so ParseSliceHeader() is tried again.
               curr_slice_hdr_.reset();
               return H264Decoder::kTryAgain;
@@ -1431,11 +1431,11 @@ H264Decoder::DecodeResult H264Decoder::Decode() {
         break;
 
       default:
-        DVLOG(4) << "Skipping NALU type: " << curr_nalu_->nal_unit_type;
+        VLOG(4) << "Skipping NALU type: " << curr_nalu_->nal_unit_type;
         break;
     }
 
-    DVLOG(4) << "NALU done";
+    VLOG(4) << "NALU done";
     curr_nalu_.reset();
   }
 }
@@ -1467,7 +1467,7 @@ bool H264Decoder::FillH264PictureFromSliceHeader(
   }
 
   if (pic->field != H264Picture::FIELD_NONE) {
-    DVLOG(1) << "Interlaced video not supported.";
+    VLOG(1) << "Interlaced video not supported.";
     return false;
   }
 
