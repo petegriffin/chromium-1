@@ -46,8 +46,11 @@ namespace {
 gpu::VideoDecodeAcceleratorCapabilities GetDecoderCapabilitiesInternal(
     const gpu::GpuPreferences& gpu_preferences,
     const gpu::GpuDriverBugWorkarounds& workarounds) {
-  if (gpu_preferences.disable_accelerated_video_decode)
+  VLOG(0) << __func__;
+  if (gpu_preferences.disable_accelerated_video_decode) {
+    VLOG(0) << __func__;
     return gpu::VideoDecodeAcceleratorCapabilities();
+  }
 
   // Query VDAs for their capabilities and construct a set of supported
   // profiles for current platform. This must be done in the same order as in
@@ -64,6 +67,7 @@ gpu::VideoDecodeAcceleratorCapabilities GetDecoderCapabilitiesInternal(
 #elif BUILDFLAG(USE_V4L2_CODEC) || BUILDFLAG(USE_VAAPI)
   VideoDecodeAccelerator::SupportedProfiles vda_profiles;
 #if BUILDFLAG(USE_V4L2_CODEC)
+  VLOG(0) << __func__;
   vda_profiles = V4L2VideoDecodeAccelerator::GetSupportedProfiles();
   GpuVideoAcceleratorUtil::InsertUniqueDecodeProfiles(
       vda_profiles, &capabilities.supported_profiles);
@@ -72,18 +76,21 @@ gpu::VideoDecodeAcceleratorCapabilities GetDecoderCapabilitiesInternal(
       vda_profiles, &capabilities.supported_profiles);
 #endif
 #if BUILDFLAG(USE_VAAPI)
+  VLOG(0) << __func__;
   vda_profiles = VaapiVideoDecodeAccelerator::GetSupportedProfiles();
   GpuVideoAcceleratorUtil::InsertUniqueDecodeProfiles(
       vda_profiles, &capabilities.supported_profiles);
 #endif
 #elif defined(OS_MACOSX)
+  VLOG(0) << __func__;
   capabilities.supported_profiles =
       VTVideoDecodeAccelerator::GetSupportedProfiles();
 #elif defined(OS_ANDROID)
+  VLOG(0) << __func__;
   capabilities =
       AndroidVideoDecodeAccelerator::GetCapabilities(gpu_preferences);
 #endif
-
+  VLOG(0) << __func__;
   return GpuVideoAcceleratorUtil::ConvertMediaToGpuDecodeCapabilities(
       capabilities);
 }
@@ -96,6 +103,7 @@ GpuVideoDecodeAcceleratorFactory::Create(
     const GetGLContextCallback& get_gl_context_cb,
     const MakeGLContextCurrentCallback& make_context_current_cb,
     const BindGLImageCallback& bind_image_cb) {
+  VLOG(0) << __func__;
   return base::WrapUnique(new GpuVideoDecodeAcceleratorFactory(
       get_gl_context_cb, make_context_current_cb, bind_image_cb,
       GetContextGroupCallback(), AndroidOverlayMojoFactoryCB(),
@@ -111,6 +119,7 @@ GpuVideoDecodeAcceleratorFactory::CreateWithGLES2Decoder(
     const GetContextGroupCallback& get_context_group_cb,
     const AndroidOverlayMojoFactoryCB& overlay_factory_cb,
     const CreateAbstractTextureCallback& create_abstract_texture_cb) {
+  VLOG(0) << __func__;
   return base::WrapUnique(new GpuVideoDecodeAcceleratorFactory(
       get_gl_context_cb, make_context_current_cb, bind_image_cb,
       get_context_group_cb, overlay_factory_cb, create_abstract_texture_cb));
@@ -119,6 +128,7 @@ GpuVideoDecodeAcceleratorFactory::CreateWithGLES2Decoder(
 // static
 MEDIA_GPU_EXPORT std::unique_ptr<GpuVideoDecodeAcceleratorFactory>
 GpuVideoDecodeAcceleratorFactory::CreateWithNoGL() {
+  VLOG(0) << __func__;
   return Create(GetGLContextCallback(), MakeGLContextCurrentCallback(),
                 BindGLImageCallback());
 }
@@ -133,6 +143,7 @@ GpuVideoDecodeAcceleratorFactory::GetDecoderCapabilities(
   // change between calls.
   // TODO(sandersd): Move cache to GpuMojoMediaClient once
   // |video_decode_accelerator_capabilities| is removed from GPUInfo.
+  VLOG(0) << __func__;
   static const gpu::VideoDecodeAcceleratorCapabilities capabilities =
       GetDecoderCapabilitiesInternal(gpu_preferences, workarounds);
   return capabilities;
@@ -146,10 +157,10 @@ GpuVideoDecodeAcceleratorFactory::CreateVDA(
     const gpu::GpuPreferences& gpu_preferences,
     MediaLog* media_log) {
   DCHECK(thread_checker_.CalledOnValidThread());
-
+  VLOG(0) << __func__;
   if (gpu_preferences.disable_accelerated_video_decode)
     return nullptr;
-
+  VLOG(0) << __func__;
   // Array of Create..VDA() function pointers, potentially usable on current
   // platform. This list is ordered by priority, from most to least preferred,
   // if applicable. This list must be in the same order as the querying order
@@ -176,15 +187,17 @@ GpuVideoDecodeAcceleratorFactory::CreateVDA(
     &GpuVideoDecodeAcceleratorFactory::CreateAndroidVDA,
 #endif
   };
-
+  VLOG(0) << __func__;
   std::unique_ptr<VideoDecodeAccelerator> vda;
 
   for (const auto& create_vda_function : create_vda_fps) {
     vda = (this->*create_vda_function)(workarounds, gpu_preferences, media_log);
-    if (vda && vda->Initialize(config, client))
+    if (vda && vda->Initialize(config, client)) {
+      VLOG(0) << __func__;
       return vda;
+    }
   }
-
+  VLOG(0) << __func__;
   return nullptr;
 }
 
@@ -209,13 +222,16 @@ GpuVideoDecodeAcceleratorFactory::CreateV4L2VDA(
     const gpu::GpuDriverBugWorkarounds& workarounds,
     const gpu::GpuPreferences& gpu_preferences,
     MediaLog* media_log) const {
+  VLOG(0) << __func__;
   std::unique_ptr<VideoDecodeAccelerator> decoder;
   scoped_refptr<V4L2Device> device = V4L2Device::Create();
+  VLOG(0) << __func__;
   if (device.get()) {
     decoder.reset(new V4L2VideoDecodeAccelerator(
         gl::GLSurfaceEGL::GetHardwareDisplay(), get_gl_context_cb_,
         make_context_current_cb_, device));
   }
+  VLOG(0) << __func__;
   return decoder;
 }
 
@@ -224,6 +240,7 @@ GpuVideoDecodeAcceleratorFactory::CreateV4L2SVDA(
     const gpu::GpuDriverBugWorkarounds& workarounds,
     const gpu::GpuPreferences& gpu_preferences,
     MediaLog* media_log) const {
+  VLOG(0) << __func__;
   std::unique_ptr<VideoDecodeAccelerator> decoder;
   scoped_refptr<V4L2Device> device = V4L2Device::Create();
   if (device.get()) {
