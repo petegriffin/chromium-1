@@ -79,7 +79,7 @@ bool GenericV4L2Device::Poll(bool poll_device, bool* event_pending) {
   nfds = 1;
 
   if (poll_device) {
-    DVLOGF(5) << "adding device fd to poll() set";
+    VLOGF(5) << "adding device fd to poll() set";
     pollfds[nfds].fd = device_fd_.get();
     pollfds[nfds].events = POLLIN | POLLOUT | POLLERR | POLLPRI;
     pollfd = nfds;
@@ -108,7 +108,7 @@ void GenericV4L2Device::Munmap(void* addr, unsigned int len) {
 }
 
 bool GenericV4L2Device::SetDevicePollInterrupt() {
-  DVLOGF(4);
+  VLOGF(4);
 
   const uint64_t buf = 1;
   if (HANDLE_EINTR(write(device_poll_interrupt_fd_.get(), &buf, sizeof(buf))) ==
@@ -120,7 +120,7 @@ bool GenericV4L2Device::SetDevicePollInterrupt() {
 }
 
 bool GenericV4L2Device::ClearDevicePollInterrupt() {
-  DVLOGF(5);
+  VLOGF(5);
 
   uint64_t buf;
   if (HANDLE_EINTR(read(device_poll_interrupt_fd_.get(), &buf, sizeof(buf))) ==
@@ -205,7 +205,7 @@ bool GenericV4L2Device::CanCreateEGLImageFrom(uint32_t v4l2_pixfmt) {
     DRM_FORMAT_YVU420,
 #endif
   };
-
+  VLOG(0) << __func__ << FourccToString(v4l2_pixfmt);
   return std::find(
              kEGLImageDrmFmtsSupported,
              kEGLImageDrmFmtsSupported + arraysize(kEGLImageDrmFmtsSupported),
@@ -221,7 +221,7 @@ EGLImageKHR GenericV4L2Device::CreateEGLImage(
     unsigned int buffer_index,
     uint32_t v4l2_pixfmt,
     const std::vector<base::ScopedFD>& dmabuf_fds) {
-  DVLOGF(3);
+  VLOGF(3);
   if (!CanCreateEGLImageFrom(v4l2_pixfmt)) {
     VLOGF(1) << "Unsupported V4L2 pixel format";
     return EGL_NO_IMAGE_KHR;
@@ -289,7 +289,7 @@ scoped_refptr<gl::GLImage> GenericV4L2Device::CreateGLImage(
     const gfx::Size& size,
     uint32_t fourcc,
     const std::vector<base::ScopedFD>& dmabuf_fds) {
-  DVLOGF(3);
+  VLOGF(3);
   DCHECK(CanCreateEGLImageFrom(fourcc));
   VideoPixelFormat vf_format = V4L2PixFmtToVideoPixelFormat(fourcc);
   size_t num_planes = VideoFrame::NumPlanes(vf_format);
@@ -367,7 +367,7 @@ scoped_refptr<gl::GLImage> GenericV4L2Device::CreateGLImage(
 
 EGLBoolean GenericV4L2Device::DestroyEGLImage(EGLDisplay egl_display,
                                               EGLImageKHR egl_image) {
-  DVLOGF(3);
+  VLOGF(3);
   EGLBoolean result = eglDestroyImageKHR(egl_display, egl_image);
   if (result != EGL_TRUE) {
     LOG(WARNING) << "Destroy EGLImage failed.";
@@ -413,7 +413,7 @@ VideoDecodeAccelerator::SupportedProfiles
 GenericV4L2Device::GetSupportedDecodeProfiles(const size_t num_formats,
                                               const uint32_t pixelformats[]) {
   VideoDecodeAccelerator::SupportedProfiles supported_profiles;
-
+  VLOGF(4);
   Type type = Type::kDecoder;
   const auto& devices = GetDevicesForType(type);
   for (const auto& device : devices) {
@@ -435,7 +435,7 @@ GenericV4L2Device::GetSupportedDecodeProfiles(const size_t num_formats,
 VideoEncodeAccelerator::SupportedProfiles
 GenericV4L2Device::GetSupportedEncodeProfiles() {
   VideoEncodeAccelerator::SupportedProfiles supported_profiles;
-
+  VLOGF(4);
   Type type = Type::kEncoder;
   const auto& devices = GetDevicesForType(type);
   for (const auto& device : devices) {
@@ -514,23 +514,27 @@ void GenericV4L2Device::EnumerateDevicesForType(Type type) {
   static const std::string kImageProcessorDevicePattern = "/dev/image-proc";
   static const std::string kJpegDecoderDevicePattern = "/dev/jpeg-dec";
   static const std::string kJpegEncoderDevicePattern = "/dev/jpeg-enc";
-
+  VLOGF(2);
   std::string device_pattern;
   v4l2_buf_type buf_type;
   switch (type) {
     case Type::kDecoder:
+      VLOGF(4);
       device_pattern = kDecoderDevicePattern;
       buf_type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
       break;
     case Type::kEncoder:
+      VLOGF(4);
       device_pattern = kEncoderDevicePattern;
       buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
       break;
     case Type::kImageProcessor:
+      VLOGF(4);
       device_pattern = kImageProcessorDevicePattern;
       buf_type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
       break;
     case Type::kJpegDecoder:
+      VLOGF(4);
       device_pattern = kJpegDecoderDevicePattern;
       buf_type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
       break;
@@ -562,7 +566,7 @@ void GenericV4L2Device::EnumerateDevicesForType(Type type) {
     const auto& supported_pixelformats =
         EnumerateSupportedPixelformats(buf_type);
     if (!supported_pixelformats.empty()) {
-      DVLOGF(3) << "Found device: " << path;
+      VLOGF(3) << "Found device: " << path;
       devices.push_back(std::make_pair(path, supported_pixelformats));
     }
 
